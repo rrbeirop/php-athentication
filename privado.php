@@ -2,7 +2,19 @@
 session_start();
 $userlog = $_SESSION ['usuario'] ?? null;
 
+
 if (empty($userlog)) {
+    return header('Location: login.php');
+}
+
+$_SESSION['login_time'] = time(); 
+
+$loginTime = $_SESSION['login_time'];
+
+if (time() - $loginTime > 10) {
+    session_unset();
+    echo 'Você foi desconectado por inatividade';
+    session_destroy();
     return header('Location: login.php');
 }
 
@@ -28,10 +40,11 @@ if (empty($userlog)) {
         <p> Bem Vindo <?= $_SESSION['usuario']?> </p>
         <p> Seu Perfil no Sistema é <?= $_SESSION['perfil'] ?></p>
 
-        <?php if ($_SESSION['perfil'] === 'admin') :?>
+        <?php if ($_SESSION['perfil'] === 'Administrador') :?>
         <button>Exclusivo Adm</button>
         <?php endif; ?>
     <?php endif; ?>
+
 
 </body>
 </html>

@@ -1,36 +1,101 @@
 <?php
 session_start();
 
+$usuarios = [
+    [
+        'email' => 'vitor@organizer.com',
+        'senha' => password_hash('123', PASSWORD_BCRYPT),
+        'perfil' => 'Gestor'
+    ],
+    [
+        'email' => 'joao@organizer.com',
+        'senha' => password_hash('abc123', PASSWORD_BCRYPT),
+        'perfil' => 'Funcionario'
+    ],
+    [
+        'email' => 'ana@organizer.com',
+        'senha' => password_hash('senhaSegura', PASSWORD_BCRYPT),
+        'perfil' => 'Administrador'
+    ]
+];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $emailForm = $_POST['email'];
-    $senhaForm = $_POST['senha'];
-
-    if (!empty($emailForm) && !empty($senhaForm)) {
-        $emailCorreto = 'vitor@organizer.com';
-        $senhaCorreta = password_hash('123', PASSWORD_BCRYPT);
-
-    // perfil ou funcao usuario do sistema adm / gestor / funcionario //
-
-        $perfil = 'admin';
-        
-        if ($emailForm === $emailCorreto && password_verify($senhaForm, $senhaCorreta)) {
-            $_SESSION['usuario'] = $emailForm;
-            $_SESSION['perfil'] = $perfil;
-
-            header('Location: privado.php');
-        }
-        else {
-            echo 'Email ou Senha incorretas';
-            
-        }
-    }
-    // $_SESSION['usuario'] = $email;
-    // return header('Location: index.php');
+if (!isset($_SESSION['tentativas'])) {
+    $_SESSION['tentativas'] = 0;
+}
+if (!isset($_SESSION['bloqueio'])) {
+    $_SESSION['bloqueio'] = null;
 }
 
+// Verifica se está bloqueado
+$agora = time();
+if ($_SESSION['bloqueio'] && $agora < $_SESSION['bloqueio']) {
+    $espera = $_SESSION['bloqueio'] - $agora;
+    echo "Você excedeu o número de tentativas. Tente novamente em $espera segundos.";
+    exit;
+}
 
+// Processa o formulário
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $emailForm = $_POST['email'] ?? '';
+    $senhaForm = $_POST['senha'] ?? '';
+
+    if (!empty($emailForm) && !empty($senhaForm)) {
+        $autenticado = false;
+
+        foreach ($usuarios as $usuario) {
+            if ($usuario['email'] === $emailForm && password_verify($senhaForm, $usuario['senha'])) {
+                // ✅ Login bem-sucedido
+                session_regenerate_id(true); // Regenera o ID da sessão
+                $_SESSION['usuario'] = $usuario['email'];
+                $_SESSION['perfil'] = $usuario['perfil'];
+                $_SESSION['tentativas'] = 0; // Resetar tentativas
+                $_SESSION['bloqueio'] = null;
+                header('Location: privado.php');
+                exit;
+            }
+        }
+
+    
+        $_SESSION['tentativas']++;
+
+        if ($_SESSION['tentativas'] >= 3) {
+            $_SESSION['bloqueio'] = time() + 120; // Bloqueia por 2 minutos
+            echo "Você excedeu o número de tentativas. Tente novamente em 2 minutos.";
+        } else {
+            echo "Credenciais inválidas. Tente novamente.";
+        }
+    } else {
+        echo "Preencha todos os campos.";
+    }
+}
 ?>
+
+
+
+<!-- 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $emailForm = $_POST['email'] ?? '';
+    $senhaForm = $_POST['senha'] ?? '';
+
+    if (!empty($emailForm) && !empty($senhaForm)) {
+        foreach ($usuarios as $usuario) {
+            if ($usuario['email'] === $emailForm && password_verify($senhaForm, $usuario['senha'])) {
+                $_SESSION['usuario'] = $usuario['email'];
+                $_SESSION['perfil'] = $usuario['perfil'];
+                header('Location: privado.php');
+                exit;
+            }
+        }
+        echo "Email ou senha incorretos!";
+    } else {
+        echo "Preencha todos os campos.";
+    }
+} -->
+
+
+
+
+<!-- ?> -->
 
 <!DOCTYPE html>
 <html lang="en">
